@@ -21,7 +21,7 @@ from os import listdir
 
 
 from os import walk
-my_path = "/Users/Dante/Dropbox/Recibos Honorarios/2015/Facturas Enero/"
+my_path = "xmls/"
 all_xmls = []
 for (dirpath, dirnames, filenames) in walk(my_path):
     all_xmls.extend([xml_file for xml_file in filenames if xml_file.endswith('.xml')])
@@ -36,6 +36,7 @@ for xml_name in all_xmls:
     the_dict['fecha'] = factura.cfdi_Comprobante.get_attribute('fecha')
     the_dict['subtotal'] = factura.cfdi_Comprobante.get_attribute('subTotal')
     the_dict['total'] = factura.cfdi_Comprobante.get_attribute('total')
+    the_dict['emisor'] = factura.cfdi_Comprobante.cfdi_Emisor.get_attribute('nombre')
     the_dict['impuesto'] = factura.cfdi_Comprobante.cfdi_Impuestos.cfdi_Traslados.cfdi_Traslado.get_attribute('impuesto')
     the_dict['importe'] = factura.cfdi_Comprobante.cfdi_Impuestos.cfdi_Traslados.cfdi_Traslado.get_attribute('importe')
     es.append(the_dict)
@@ -46,3 +47,11 @@ data_facturas = pn.DataFrame(es)
 data_facturas['fecha'] = data_facturas.fecha.map(lambda x: pn.to_datetime(x, '%Y-%m-%dT%H:%M:$S'))
 for my_col in ['subtotal', 'total', 'importe']:
     data_facturas[my_col] = data_facturas[my_col].astype(float)
+
+
+import os
+for root, dirs, files in os.walk(my_path, topdown=False):
+    for name in files:
+        print(os.path.join(root, name))
+    for name in dirs:
+        print(os.path.join(root, name))
