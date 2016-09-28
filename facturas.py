@@ -57,7 +57,7 @@ def include_nuevas(facturas_hist, nuevas_facturas):
         emisor = nuevas_facturas.loc[index_number, 'emisor'].encode('utf-8')
         is_this_isr = raw_input('file: {file_name} \nemisor: {emisor}\n'.format(file_name=xml_name, emisor=emisor))
         for_isr[index_number] = is_this_isr != ''
-    nuevas_facturas['for_isr'] = for_isr
+    nuevas_facturas['for_isr'] = for_isr.astype(bool)
     return facturas_hist.append(nuevas_facturas)
 
 if resp == 'y':
