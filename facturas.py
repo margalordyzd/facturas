@@ -6,6 +6,7 @@ import untangle
 import pandas as pn
 from os import listdir
 from os import walk
+import datetime
 
 my_path = "xmls/"
 all_xmls = []
@@ -57,10 +58,50 @@ def include_nuevas(facturas_hist, nuevas_facturas):
         emisor = nuevas_facturas.loc[index_number, 'emisor'].encode('utf-8')
         is_this_isr = raw_input('file: {file_name} \nemisor: {emisor}\n'.format(file_name=xml_name, emisor=emisor))
         for_isr[index_number] = is_this_isr != ''
-    nuevas_facturas['for_isr'] = for_isr
+    nuevas_facturas['for_isr'] = for_isr.astype(bool)
     return facturas_hist.append(nuevas_facturas)
 
 if resp == 'y':
     facturas_hist = include_nuevas(facturas_hist, nuevas_facturas)
     facturas_hist.to_pickle('facturas_hist.pkl')
+
+# declaraciones_columns = ['ingresos_acumulados', 'ingresos_periodo', 'suma_gastos', 'gastos_periodo', 'suma_isr',
+#                          'isr_periodo', 'iva_cobrado', 'iva_pagado', 'iva_retenido', 'pago_sat']
+# declaraciones = pn.DataFrame(columns=declaraciones_columns)
+# declaraciones.to_pickle('declaraciones.pkl')
+
+declaraciones = pn.read_pickle('declaraciones.pkl')
+
+ingresos_periodo = 10000.0 # Aqui van tus ingresos antes de impuestos y retenciones
+iva_cobrado = 1600   # aqui va el iva que cobraste
+iva_retenido = 1100  # Aqui va el iva que te retuvieron
+isr_periodo = 1000   # ISR que te retuvieron en el periodo
+ano_fiscal = 2016    # Año del ejercicio que estas declarando
+
+def compute_cumulate(declaraciones, mes):
+    if mes == 1:
+        declaraciones.loc[mes, 'ingresos_acumulados'] = 0
+        declaraciones.loc[mes, 'suma_gastos'] = 0
+        declaraciones.loc[mes, 'suma_isr'] = declaraciones.loc[mes, 'isr_periodo']
+    else:
+        declaraciones.loc[mes, 'ingresos_acumulados'] = declaraciones.loc[mes - 1, 'ingresos_acumulados'] + declaraciones.loc[mes - 1, 'ingresos_periodo']
+        declaraciones.loc[mes, 'suma_gastos'] = declaraciones.loc[mes - 1, 'suma_gastos'] + declaraciones.loc[mes - 1, 'gastos_periodo']
+        declaraciones.loc[mes, 'suma_isr'] = declaraciones.loc[mes - 1, 'suma_isr'] + declaraciones.loc[mes, 'isr_periodo']
+    return declaraciones
+
+def declara_mes(mes, declaraciones, facturas_hist):
+    fecha1 = facturas_hist.fecha >= datetime.date(ano_fiscal, mes, 1)
+    fecha2 = facturas_hist.fecha < datetime.date(ano_fiscal, mes + 1, 1)
+    impuesto = facturas_hist.impuesto == u'IVA'
+    facturas_periodo = facturas_hist.loc[fecha1 & fecha2 & impuesto]
+    declaraciones.loc[mes, 'ingresos_periodo'] = ingresos_periodo
+    declaraciones.loc[mes, 'iva_cobrado'] = iva_cobrado
+    declaraciones.loc[mes, 'iva_retenido'] = iva_retenido
+    declaraciones.loc[mes, 'isr_periodo'] = isr_periodo
+    declaraciones.loc[mes, 'iva_pagado'] = facturas_periodo.importe.sum()
+    declaraciones.loc[mes, 'gastos_periodo'] = facturas_periodo.loc[facturas_periodo.for_isr, 'subtotal'].sum()
+    declaraciones = compute_cumulate(declaraciones, mes)
+    print declaraciones.loc[mes]
+    declaraciones.loc[mes, 'pago_sat'] = float(raw_input('Cuanto vas a pagar al SAT?\n'))
+    declaraciones.to_pickle('declaraciones.pkl')
 
