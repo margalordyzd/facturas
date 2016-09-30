@@ -96,8 +96,8 @@ def compute_cumulate(declaraciones, mes):
     return declaraciones
 
 def declara_mes(mes, declaraciones, facturas_hist):
-    fecha1 = facturas_hist.fecha >= datetime.date(static_data['ano_fiscal'].iloc[0], mes, 1)
-    fecha2 = facturas_hist.fecha < datetime.date(static_data['ano_fiscal'].iloc[0], mes + 1, 1)
+    fecha1 = facturas_hist.fecha >= datetime.date(static_data['ano_fiscal'].iloc[0]), mes, 1)
+    fecha2 = facturas_hist.fecha < datetime.date(static_data['ano_fiscal'].iloc[0]), mes + 1, 1)
     impuesto = facturas_hist.impuesto == u'IVA'
     facturas_periodo = facturas_hist.loc[fecha1 & fecha2 & impuesto]
     declaraciones.loc[mes, 'ingresos_periodo'] = static_data['ingresos'].iloc[0]
