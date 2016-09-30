@@ -53,7 +53,9 @@ else:
     static_data['isr_retenido'] = float(raw_input('Cuanto te retienen de ISR?\n'))
     static_data['ano_fiscal'] = int(raw_input('Que año estas declarando?\n'))
     static_data['primer_mes'] = int(raw_input('Cual es tu primer mes?\n'))
+    static_data = {0: static_data}
     static_data = pn.DataFrame(static_data)
+    static_data = static_data.transpose()
     static_data.to_pickle('static_data.pkl')
 
 nuevas_facturas = data_facturas.loc[~data_facturas.nombre.isin(facturas_hist.nombre)]
