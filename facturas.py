@@ -1,5 +1,3 @@
-__author__ = 'Dante'
-
 # Codigo para leer facturas y sacar los insumos para la declaracion mensual del SAT
 
 import untangle
@@ -42,15 +40,25 @@ for my_col in ['subtotal', 'total', 'importe']:
 
 if os.path.isfile('facturas_hist.pkl'):
     facturas_hist = pn.read_pickle('facturas_hist.pkl')
+    static_data = pn.read_pickle('static_data.pkl')
 else:
     data_hist_columns = data_facturas.columns.tolist()
     data_hist_columns.append('for_isr')
     facturas_hist = pn.DataFrame(columns=data_hist_columns)
     facturas_hist.to_pickle('facturas_hist.pkl')
+    static_data = {}
+    static_data['ingresos'] = float(raw_input('Cuales son tus ingresos antes de impuestos y retenciones?\n'))
+    static_data['iva_cobrado'] = float(raw_input('Cuanto cobras de iva?\n'))
+    static_data['iva_retenido'] = float(raw_input('Cuanto te retienen de iva?\n'))
+    static_data['isr_retenido'] = float(raw_input('Cuanto te retienen de ISR?\n'))
+    static_data['ano_fiscal'] = int(raw_input('Que año estas declarando?\n'))
+    static_data['primer_mes'] = int(raw_input('Cual es tu primer mes?\n'))
+    static_data = pn.DataFrame(static_data)
+    static_data.to_pickle('static_data.pkl')
 
 nuevas_facturas = data_facturas.loc[~data_facturas.nombre.isin(facturas_hist.nombre)]
 
-resp = raw_input('Deseas classificar las {quant} nuevas facturas?'.format(quant=len(nuevas_facturas)))
+resp = raw_input('Deseas classificar las {quant} nuevas facturas?\n'.format(quant=len(nuevas_facturas)))
 
 def include_nuevas(facturas_hist, nuevas_facturas):
     for_isr = pn.Series(index=nuevas_facturas.index)
@@ -74,14 +82,8 @@ else:
     declaraciones = pn.DataFrame(columns=declaraciones_columns)
     declaraciones.to_pickle('declaraciones.pkl')
 
-ingresos_periodo = 10000.0 # Aqui van tus ingresos antes de impuestos y retenciones
-iva_cobrado = 1600   # aqui va el iva que cobraste
-iva_retenido = 1100  # Aqui va el iva que te retuvieron
-isr_periodo = 1000   # ISR que te retuvieron en el periodo
-ano_fiscal = 2016    # Año del ejercicio que estas declarando
-
 def compute_cumulate(declaraciones, mes):
-    if mes == 1:
+    if mes == static_data['primer_mes'].iloc[0]:
         declaraciones.loc[mes, 'ingresos_acumulados'] = 0
         declaraciones.loc[mes, 'suma_gastos'] = 0
         declaraciones.loc[mes, 'suma_isr'] = declaraciones.loc[mes, 'isr_periodo']
@@ -92,18 +94,17 @@ def compute_cumulate(declaraciones, mes):
     return declaraciones
 
 def declara_mes(mes, declaraciones, facturas_hist):
-    fecha1 = facturas_hist.fecha >= datetime.date(ano_fiscal, mes, 1)
-    fecha2 = facturas_hist.fecha < datetime.date(ano_fiscal, mes + 1, 1)
+    fecha1 = facturas_hist.fecha >= datetime.date(static_data['ano_fiscal'].iloc[0], mes, 1)
+    fecha2 = facturas_hist.fecha < datetime.date(static_data['ano_fiscal'].iloc[0], mes + 1, 1)
     impuesto = facturas_hist.impuesto == u'IVA'
     facturas_periodo = facturas_hist.loc[fecha1 & fecha2 & impuesto]
-    declaraciones.loc[mes, 'ingresos_periodo'] = ingresos_periodo
-    declaraciones.loc[mes, 'iva_cobrado'] = iva_cobrado
-    declaraciones.loc[mes, 'iva_retenido'] = iva_retenido
-    declaraciones.loc[mes, 'isr_periodo'] = isr_periodo
+    declaraciones.loc[mes, 'ingresos_periodo'] = static_data['ingresos'].iloc[0]
+    declaraciones.loc[mes, 'iva_cobrado'] = static_data['iva_cobrado'].iloc[0]
+    declaraciones.loc[mes, 'iva_retenido'] = static_data['iva_retenido'].iloc[0]
+    declaraciones.loc[mes, 'isr_periodo'] = static_data['isr_retenido'].iloc[0]
     declaraciones.loc[mes, 'iva_pagado'] = facturas_periodo.importe.sum()
     declaraciones.loc[mes, 'gastos_periodo'] = facturas_periodo.loc[facturas_periodo.for_isr, 'subtotal'].sum()
     declaraciones = compute_cumulate(declaraciones, mes)
     print declaraciones.loc[mes]
     declaraciones.loc[mes, 'pago_sat'] = float(raw_input('Cuanto vas a pagar al SAT?\n'))
     declaraciones.to_pickle('declaraciones.pkl')
-
