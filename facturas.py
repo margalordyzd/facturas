@@ -7,6 +7,7 @@ import pandas as pn
 from os import listdir
 from os import walk
 import datetime
+import os.path
 
 my_path = "xmls/"
 all_xmls = []
@@ -39,15 +40,15 @@ data_facturas['fecha'] = data_facturas.fecha.map(lambda x: pn.to_datetime(x, for
 for my_col in ['subtotal', 'total', 'importe']:
     data_facturas[my_col] = data_facturas[my_col].astype(float)
 
-# data_hist_columns = data_facturas.columns.tolist()
-# data_hist_columns.append('for_isr')
-# facturas_hist = pn.DataFrame(columns=data_hist_columns)
-# facturas_hist.to_pickle('facturas_hist.pkl')
-
-facturas_hist = pn.read_pickle('facturas_hist.pkl')
+if os.path.isfile('facturas_hist.pkl'):
+    facturas_hist = pn.read_pickle('facturas_hist.pkl')
+else:
+    data_hist_columns = data_facturas.columns.tolist()
+    data_hist_columns.append('for_isr')
+    facturas_hist = pn.DataFrame(columns=data_hist_columns)
+    facturas_hist.to_pickle('facturas_hist.pkl')
 
 nuevas_facturas = data_facturas.loc[~data_facturas.nombre.isin(facturas_hist.nombre)]
-
 
 resp = raw_input('Deseas classificar las {quant} nuevas facturas?'.format(quant=len(nuevas_facturas)))
 
@@ -65,12 +66,13 @@ if resp == 'y':
     facturas_hist = include_nuevas(facturas_hist, nuevas_facturas)
     facturas_hist.to_pickle('facturas_hist.pkl')
 
-# declaraciones_columns = ['ingresos_acumulados', 'ingresos_periodo', 'suma_gastos', 'gastos_periodo', 'suma_isr',
-#                          'isr_periodo', 'iva_cobrado', 'iva_pagado', 'iva_retenido', 'pago_sat']
-# declaraciones = pn.DataFrame(columns=declaraciones_columns)
-# declaraciones.to_pickle('declaraciones.pkl')
-
-declaraciones = pn.read_pickle('declaraciones.pkl')
+if os.path.isfile('declaraciones.pkl'):
+    declaraciones = pn.read_pickle('declaraciones.pkl')
+else:
+    declaraciones_columns = ['ingresos_acumulados', 'ingresos_periodo', 'suma_gastos', 'gastos_periodo', 'suma_isr',
+                             'isr_periodo', 'iva_cobrado', 'iva_pagado', 'iva_retenido', 'pago_sat']
+    declaraciones = pn.DataFrame(columns=declaraciones_columns)
+    declaraciones.to_pickle('declaraciones.pkl')
 
 ingresos_periodo = 10000.0 # Aqui van tus ingresos antes de impuestos y retenciones
 iva_cobrado = 1600   # aqui va el iva que cobraste
