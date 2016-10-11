@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Codigo para leer facturas y sacar los insumos para la declaracion mensual del SAT
 
 import untangle
@@ -89,10 +90,12 @@ def compute_cumulate(declaraciones, mes):
         declaraciones.loc[mes, 'ingresos_acumulados'] = 0
         declaraciones.loc[mes, 'suma_gastos'] = 0
         declaraciones.loc[mes, 'suma_isr'] = declaraciones.loc[mes, 'isr_periodo']
+        declaraciones.loc[mes, 'suma_pagos'] = 0
     else:
         declaraciones.loc[mes, 'ingresos_acumulados'] = declaraciones.loc[mes - 1, 'ingresos_acumulados'] + declaraciones.loc[mes - 1, 'ingresos_periodo']
         declaraciones.loc[mes, 'suma_gastos'] = declaraciones.loc[mes - 1, 'suma_gastos'] + declaraciones.loc[mes - 1, 'gastos_periodo']
         declaraciones.loc[mes, 'suma_isr'] = declaraciones.loc[mes - 1, 'suma_isr'] + declaraciones.loc[mes, 'isr_periodo']
+        declaraciones.loc[mes, 'suma_pagos'] = declaraciones.loc[mes - 1, 'suma_pagos'] + declaraciones.loc[mes - 1, 'pago_sat']
     return declaraciones
 
 def declara_mes(mes, declaraciones, facturas_hist):
