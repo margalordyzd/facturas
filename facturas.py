@@ -25,6 +25,7 @@ for xml_name in all_xmls:
     the_dict['subtotal'] = factura.cfdi_Comprobante.get_attribute('subTotal')
     the_dict['total'] = factura.cfdi_Comprobante.get_attribute('total')
     the_dict['emisor'] = factura.cfdi_Comprobante.cfdi_Emisor.get_attribute('nombre')
+    the_dict['concepto'] = [x.get_attribute('descripcion') for x in factura.cfdi_Comprobante.cfdi_Conceptos.cfdi_Concepto]
     try:
         the_dict['impuesto'] = factura.cfdi_Comprobante.cfdi_Impuestos.cfdi_Traslados.cfdi_Traslado.get_attribute(
             'impuesto')
@@ -74,12 +75,16 @@ resp = raw_input('Deseas classificar las {quant} nuevas facturas?\n'.format(quan
 
 def include_nuevas(facturas_hist, nuevas_facturas):
     for index_number in nuevas_facturas.index:
-        xml_name = nuevas_facturas.loc[index_number, 'nombre']
-        emisor = nuevas_facturas.loc[index_number, 'emisor'].encode('utf-8')
-        is_this_isr = raw_input(
-            'file: {open_path}{file_name} \nemisor: {emisor}\n'.format(open_path=open_path, file_name=xml_name,
-                                                                       emisor=emisor))
-        nuevas_facturas.loc[index_number, 'for_isr'] = is_this_isr in {'y', 'yes', 's', 'si', 'Y', 'S', 'oie cy'}
+        is_uber = 'SERVICIO PRIVADO DE TRANSPORTE CON CHOFER' in nuevas_facturas.loc[index_number].concepto[0]
+        if is_uber:
+            nuevas_facturas.loc[index_number, 'for_isr'] = True
+        else:
+            xml_name = nuevas_facturas.loc[index_number, 'nombre']
+            emisor = nuevas_facturas.loc[index_number, 'emisor'].encode('utf-8')
+            is_this_isr = raw_input(
+                'file: {open_path}{file_name} \nemisor: {emisor}\n'.format(open_path=open_path, file_name=xml_name,
+                                                                           emisor=emisor))
+            nuevas_facturas.loc[index_number, 'for_isr'] = is_this_isr in {'y', 'yes', 's', 'si', 'Y', 'S', 'oie cy'}
         facturas_hist = facturas_hist.append(nuevas_facturas.loc[index_number])
         facturas_hist.to_pickle('facturas_hist.pkl')
     return facturas_hist
