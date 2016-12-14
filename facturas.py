@@ -12,6 +12,7 @@ my_path = "xmls/"
 all_xmls = []
 for (dirpath, dirnames, filenames) in walk(my_path):
     all_xmls.extend([xml_file for xml_file in filenames if xml_file.endswith('.xml')])
+open_path = 'file:///home/nerdless/sync/workspace/facturas/xmls/'
 
 # Iterate
 es = []
@@ -68,7 +69,7 @@ def include_nuevas(facturas_hist, nuevas_facturas):
     for index_number in nuevas_facturas.index:
         xml_name = nuevas_facturas.loc[index_number, 'nombre']
         emisor = nuevas_facturas.loc[index_number, 'emisor'].encode('utf-8')
-        is_this_isr = raw_input('file: {file_name} \nemisor: {emisor}\n'.format(file_name=xml_name, emisor=emisor))
+        is_this_isr = raw_input('file: {open_path}{file_name} \nemisor: {emisor}\n'.format(open_path=open_path, file_name=xml_name, emisor=emisor))
         for_isr[index_number] = is_this_isr != ''
     nuevas_facturas['for_isr'] = for_isr.astype(bool)
     return facturas_hist.append(nuevas_facturas)
