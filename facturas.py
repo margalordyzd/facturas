@@ -7,7 +7,7 @@ from os import listdir
 from os import walk
 import datetime
 import os.path
-import pdb
+
 my_path = "xmls/"
 all_xmls = []
 for (dirpath, dirnames, filenames) in walk(my_path):
@@ -26,8 +26,10 @@ for xml_name in all_xmls:
     the_dict['total'] = factura.cfdi_Comprobante.get_attribute('total')
     the_dict['emisor'] = factura.cfdi_Comprobante.cfdi_Emisor.get_attribute('nombre')
     try:
-        the_dict['impuesto'] = factura.cfdi_Comprobante.cfdi_Impuestos.cfdi_Traslados.cfdi_Traslado.get_attribute('impuesto')
-        the_dict['importe'] = factura.cfdi_Comprobante.cfdi_Impuestos.cfdi_Traslados.cfdi_Traslado.get_attribute('importe')
+        the_dict['impuesto'] = factura.cfdi_Comprobante.cfdi_Impuestos.cfdi_Traslados.cfdi_Traslado.get_attribute(
+            'impuesto')
+        the_dict['importe'] = factura.cfdi_Comprobante.cfdi_Impuestos.cfdi_Traslados.cfdi_Traslado.get_attribute(
+            'importe')
     except (AttributeError, IndexError):
         the_dict['impuesto'] = u'IVA'
         the_dict['importe'] = factura.cfdi_Comprobante.cfdi_Impuestos.get_attribute('totalImpuestosTrasladados')
@@ -40,14 +42,8 @@ data_facturas['fecha'] = data_facturas.fecha.map(lambda x: pn.to_datetime(x, for
 for my_col in ['subtotal', 'total', 'importe']:
     data_facturas[my_col] = data_facturas[my_col].astype(float)
 
-if os.path.isfile('facturas_hist.pkl'):
-    facturas_hist = pn.read_pickle('facturas_hist.pkl')
-    static_data = pn.read_pickle('static_data.pkl')
-else:
-    data_hist_columns = data_facturas.columns.tolist()
-    data_hist_columns.append('for_isr')
-    facturas_hist = pn.DataFrame(columns=data_hist_columns)
-    facturas_hist.to_pickle('facturas_hist.pkl')
+
+def set_static_data():
     static_data = {}
     static_data['ingresos'] = float(raw_input('Cuales son tus ingresos antes de impuestos y retenciones?\n'))
     static_data['iva_cobrado'] = float(raw_input('Cuanto cobras de iva?\n'))
@@ -59,6 +55,17 @@ else:
     static_data = pn.DataFrame(static_data)
     static_data = static_data.transpose()
     static_data.to_pickle('static_data.pkl')
+    return static_data
+
+if os.path.isfile('facturas_hist.pkl'):
+    facturas_hist = pn.read_pickle('facturas_hist.pkl')
+    static_data = pn.read_pickle('static_data.pkl')
+else:
+    data_hist_columns = data_facturas.columns.tolist()
+    data_hist_columns.append('for_isr')
+    facturas_hist = pn.DataFrame(columns=data_hist_columns)
+    facturas_hist.to_pickle('facturas_hist.pkl')
+    static_data = set_static_data()
 
 nuevas_facturas = data_facturas.loc[~data_facturas.nombre.isin(facturas_hist.nombre)]
 
@@ -69,15 +76,17 @@ def include_nuevas(facturas_hist, nuevas_facturas):
     for index_number in nuevas_facturas.index:
         xml_name = nuevas_facturas.loc[index_number, 'nombre']
         emisor = nuevas_facturas.loc[index_number, 'emisor'].encode('utf-8')
-        is_this_isr = raw_input('file: {open_path}{file_name} \nemisor: {emisor}\n'.format(open_path=open_path, file_name=xml_name, emisor=emisor))
+        is_this_isr = raw_input(
+            'file: {open_path}{file_name} \nemisor: {emisor}\n'.format(open_path=open_path, file_name=xml_name,
+                                                                       emisor=emisor))
         nuevas_facturas.loc[index_number, 'for_isr'] = is_this_isr in {'y', 'yes', 's', 'si', 'Y', 'S', 'oie cy'}
         facturas_hist = facturas_hist.append(nuevas_facturas.loc[index_number])
         facturas_hist.to_pickle('facturas_hist.pkl')
     return facturas_hist
 
+
 if resp == 'y':
     facturas_hist = include_nuevas(facturas_hist, nuevas_facturas)
-
 
 if os.path.isfile('declaraciones.pkl'):
     declaraciones = pn.read_pickle('declaraciones.pkl')
@@ -87,6 +96,7 @@ else:
     declaraciones = pn.DataFrame(columns=declaraciones_columns)
     declaraciones.to_pickle('declaraciones.pkl')
 
+
 def compute_cumulate(declaraciones, mes):
     if mes == int(static_data['primer_mes'].iloc[0]):
         declaraciones.loc[mes, 'ingresos_acumulados'] = 0
@@ -94,11 +104,16 @@ def compute_cumulate(declaraciones, mes):
         declaraciones.loc[mes, 'suma_isr'] = declaraciones.loc[mes, 'isr_periodo']
         declaraciones.loc[mes, 'suma_pagos'] = 0
     else:
-        declaraciones.loc[mes, 'ingresos_acumulados'] = declaraciones.loc[mes - 1, 'ingresos_acumulados'] + declaraciones.loc[mes - 1, 'ingresos_periodo']
-        declaraciones.loc[mes, 'suma_gastos'] = declaraciones.loc[mes - 1, 'suma_gastos'] + declaraciones.loc[mes - 1, 'gastos_periodo']
-        declaraciones.loc[mes, 'suma_isr'] = declaraciones.loc[mes - 1, 'suma_isr'] + declaraciones.loc[mes, 'isr_periodo']
-        declaraciones.loc[mes, 'suma_pagos'] = declaraciones.loc[mes - 1, 'suma_pagos'] + declaraciones.loc[mes - 1, 'pago_sat']
+        declaraciones.loc[mes, 'ingresos_acumulados'] = declaraciones.loc[mes - 1, 'ingresos_acumulados'] + \
+                                                        declaraciones.loc[mes - 1, 'ingresos_periodo']
+        declaraciones.loc[mes, 'suma_gastos'] = declaraciones.loc[mes - 1, 'suma_gastos'] + declaraciones.loc[
+            mes - 1, 'gastos_periodo']
+        declaraciones.loc[mes, 'suma_isr'] = declaraciones.loc[mes - 1, 'suma_isr'] + declaraciones.loc[
+            mes, 'isr_periodo']
+        declaraciones.loc[mes, 'suma_pagos'] = declaraciones.loc[mes - 1, 'suma_pagos'] + declaraciones.loc[
+            mes - 1, 'pago_sat']
     return declaraciones
+
 
 def declara_mes(mes, declaraciones, facturas_hist):
     fecha1 = facturas_hist.fecha >= datetime.date(int(static_data['ano_fiscal'].iloc[0]), mes, 1)
