@@ -7,7 +7,7 @@ from os import listdir
 from os import walk
 import datetime
 import os.path
-
+import pdb
 my_path = "xmls/"
 all_xmls = []
 for (dirpath, dirnames, filenames) in walk(my_path):
@@ -64,19 +64,20 @@ nuevas_facturas = data_facturas.loc[~data_facturas.nombre.isin(facturas_hist.nom
 
 resp = raw_input('Deseas classificar las {quant} nuevas facturas?\n'.format(quant=len(nuevas_facturas)))
 
+
 def include_nuevas(facturas_hist, nuevas_facturas):
-    for_isr = pn.Series(index=nuevas_facturas.index)
     for index_number in nuevas_facturas.index:
         xml_name = nuevas_facturas.loc[index_number, 'nombre']
         emisor = nuevas_facturas.loc[index_number, 'emisor'].encode('utf-8')
         is_this_isr = raw_input('file: {open_path}{file_name} \nemisor: {emisor}\n'.format(open_path=open_path, file_name=xml_name, emisor=emisor))
-        for_isr[index_number] = is_this_isr != ''
-    nuevas_facturas['for_isr'] = for_isr.astype(bool)
-    return facturas_hist.append(nuevas_facturas)
+        nuevas_facturas.loc[index_number, 'for_isr'] = is_this_isr in {'y', 'yes', 's', 'si', 'Y', 'S', 'oie cy'}
+        facturas_hist = facturas_hist.append(nuevas_facturas.loc[index_number])
+        facturas_hist.to_pickle('facturas_hist.pkl')
+    return facturas_hist
 
 if resp == 'y':
     facturas_hist = include_nuevas(facturas_hist, nuevas_facturas)
-    facturas_hist.to_pickle('facturas_hist.pkl')
+
 
 if os.path.isfile('declaraciones.pkl'):
     declaraciones = pn.read_pickle('declaraciones.pkl')
